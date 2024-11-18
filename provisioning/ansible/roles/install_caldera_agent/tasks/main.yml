@@ -1,0 +1,16 @@
+---
+# Tasks to install Caldera agent on Windows 10 client
+
+- name: Ensure CalderaAgent directory exists
+  win_file:
+    path: C:\CalderaAgent
+    state: directory
+
+- name: Copy Caldera agent script to Windows client
+  win_copy:
+    src: files/agent.ps1
+    dest: C:\CalderaAgent\agent.ps1
+
+- name: Execute Caldera agent script
+  win_shell: |
+    PowerShell -ExecutionPolicy Bypass -File C:\CalderaAgent\agent.ps1

@@ -1,0 +1,77 @@
+#cloud-config
+autoinstall:
+  version: 1
+  debug: true
+  locale: en_US.UTF-8
+  keyboard:
+    layout: "us"
+    variant: ""
+  identity:
+    hostname: "ubuntu-caldera"
+    username: "ubuntu"
+    password: "$6$rounds=160$b37cf8d3e96bf6672a50c5e39470115d77d67ce1cd45e4be123c4d5bb92aaeebd055f32917be7a6b1448573cda5ae620877edd2029059e7d0e9998debea71de8"
+    realname: "Ubuntu User"
+    disable_root: false
+  ssh:
+    install-server: true
+    allow-pw: true
+  network:
+    version: 2
+    ethernets:
+      enp0s3:
+        dhcp4: true  # Internal Network Interface
+      enp0s8:        # Host-only Interface
+        dhcp4: false
+        addresses: [192.168.56.32/24]
+        gateway4: 192.168.56.1
+        nameservers:
+          addresses: [192.168.56.1]
+  packages:
+    - openssh-server
+    - git
+    - python3
+    - python3-pip
+    - python3-venv
+  storage:
+    layout:
+      name: direct
+  late-commands:
+    # SSH und sudo Konfiguration
+    - echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/ubuntu
+    - chmod 440 /target/etc/sudoers.d/ubuntu
+    - "sed -i 's/^#*\(PermitRootLogin\) .*/\1 yes/' /target/etc/ssh/sshd_config"
+    - "sed -i 's/^#*\(PasswordAuthentication\) .*/\1 yes/' /target/etc/ssh/sshd_config"
+    - curtin in-target --target=/target -- systemctl enable ssh
+
+    # Caldera Installation
+    - curtin in-target --target=/target -- git clone https://github.com/mitre/caldera.git /opt/caldera
+    - curtin in-target --target=/target -- chown -R ubuntu:ubuntu /opt/caldera
+    - curtin in-target --target=/target -- python3 -m venv /opt/caldera/venv
+    - curtin in-target --target=/target -- /opt/caldera/venv/bin/pip install --upgrade pip
+    - curtin in-target --target=/target -- /opt/caldera/venv/bin/pip install -r /opt/caldera/requirements.txt
+
+    # Caldera Service erstellen
+    - |
+      curtin in-target --target=/target -- /bin/bash -c "cat > /etc/systemd/system/caldera.service << 'EOF'
+      [Unit]
+      Description=MITRE Caldera
+      After=network.target
+
+      [Service]
+      Type=simple
+      User=ubuntu
+      WorkingDirectory=/opt/caldera
+      ExecStart=/opt/caldera/venv/bin/python server.py
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+      EOF"
+    # Service aktivieren
+    - curtin in-target --target=/target -- systemctl enable caldera.service
+  early-commands:
+    - curtin in-target --target=/target -- systemctl stop ssh
+
+  # Zustimmung zur Lizenzvereinbarung
+  interactive-sections: []
+

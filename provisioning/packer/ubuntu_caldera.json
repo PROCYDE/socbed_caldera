@@ -1,0 +1,94 @@
+{
+  "_comment": "This is a packer template for Ubuntu Caldera",
+  "builders": [
+    {
+      "type": "virtualbox-iso",
+      "guest_os_type": "Ubuntu_64",
+      "iso_url": "https://releases.ubuntu.com/22.04/ubuntu-22.04.5-live-server-amd64.iso",
+      "iso_checksum": "sha256:9bc6028870aef3f74f4e16b900008179e78b130e6b0b9a140635434a46aa98b0",
+      "ssh_username": "ubuntu",
+      "ssh_password": "breach",
+      "ssh_timeout": "30m",
+      "ssh_host": "{{user `ssh_host_addr`}}",
+      "ssh_port": "22",
+      "ssh_skip_nat_mapping": "true",
+      "ssh_clear_authorized_keys": "true",
+      "shutdown_command": "echo 'breach' | sudo -S shutdown -P now",
+      "http_directory": "http",
+      "boot_command": [
+          "c",
+          "linux /casper/vmlinuz ",
+          "autoinstall ds=nocloud-net\\;s=http://{{.HTTPIP}}:{{.HTTPPort}}/ ",
+          "quiet splash ",
+          "<enter>",
+          "initrd /casper/initrd",
+          "<enter>",
+          "boot<enter>"
+      ],
+
+
+
+      "boot_wait": "15s",
+      "disk_size": "16384",
+      "memory": "4096",
+      "cpus": "2",
+      "vm_name": "Ubuntu-Caldera",
+      "headless": true,
+      "keep_registered": "true",
+      "skip_export": "true",
+      "output_directory": "{{user `vm_output`}}",
+      "format": "ova",
+      "vboxmanage": [
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--nic1",
+          "nat",
+          "--intnet1",
+          "Internet",
+          "--nic2",
+          "hostonly",
+          "--hostonlyadapter2",
+          "{{user `vm_hostonlyif`}}"
+        ],
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--rtcuseutc",
+          "on"
+        ]
+      ],
+      "vboxmanage_post": [
+        [
+          "modifyvm",
+          "{{.Name}}",
+          "--groups",
+          "/SOCBED"
+        ],
+        [
+          "snapshot",
+          "{{.Name}}",
+          "take",
+          "{{user `vm_version`}}"
+        ]
+      ]
+    }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'breach' | {{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "script": "post_install/ubuntu_caldera_setup.sh",
+      "expect_disconnect": "true",
+      "timeout": "15m"
+    }
+  ],
+  "variables": {
+    "host_ip_addr": "192.168.56.1",
+    "ssh_host_addr": "192.168.56.32",
+    "vm_description": "SOCBED: Ubuntu Caldera",
+    "vm_version": "fresh",
+    "vm_output": "./exports/ubuntu_caldera",
+    "vm_hostonlyif": "{{env `HOSTONLYIF`}}"
+  }
+}

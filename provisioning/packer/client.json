@@ -115,8 +115,8 @@
   ],
   "variables": {
     "floppy_files_path": "./floppy_files/",
-    "iso_checksum": "68c70d7ade5e9ab8510876c1f4bee58a",
-    "iso_url": "/usr/share/runner-dependencies/windows_isos/Win10_22H2_English_x64.iso",
+    "iso_checksum": "188761b4581a5aaa55714c23049ef0da",
+    "iso_url": "/home/master/Desktop/install/socbed/w10e.iso",
     "vm_description": "SOCBED: Client",
     "vm_version": "fresh",
     "vm_output": "./exports/client",

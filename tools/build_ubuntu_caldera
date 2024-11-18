@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+printf "Starting Ubuntu Caldera build. Please allow up to 40 minutes.\n"
+./tools/cleanup_failed_session  > /dev/null 2>&1
+
+source ./tools/helper
+get_hostonlyif
+
+export ANSIBLE_HOST_KEY_CHECKING=False
+cd ./provisioning/packer/
+
+packer build -force ubuntu_caldera.json 
+
+if [ $? != 0 ]; then
+    printf "Packer exited with non-zero return code.\nCleaning up...\n"
+    ../../tools/cleanup_failed_session  > /dev/null 2>&1
+    exit 1
+fi
+
+cd ../..
+./tools/cleanup_failed_session  > /dev/null 2>&1
+printf "Task finished.\n\n"

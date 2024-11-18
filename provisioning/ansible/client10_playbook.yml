@@ -3,9 +3,11 @@
 # Run the playbook using ` ansible-playbook client10_playbook.yml -i hosts `
 
 - hosts: client
+
   gather_facts: true
   
   roles:
     - configure_win10_client
     - win_disable_uac
+    - install_caldera_agent
 

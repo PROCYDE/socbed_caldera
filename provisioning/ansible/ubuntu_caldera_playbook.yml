@@ -1,0 +1,69 @@
+---
+- hosts: all
+  become: yes
+  gather_facts: true
+
+  vars:
+    ansible_python_interpreter: "/usr/bin/python3"
+
+  tasks:
+    - name: Install necessary packages
+      apt:
+        name:
+          - git
+          - python3
+          - python3-pip
+          - python3-venv
+        state: present
+        update_cache: yes
+
+    - name: Clone Caldera repository
+      git:
+        repo: https://github.com/mitre/caldera.git
+        dest: /opt/caldera
+        version: master
+        force: yes
+      become: yes
+      become_user: ubuntu
+
+    - name: Set up Python virtual environment
+      command: python3 -m venv /opt/caldera/venv
+      args:
+        creates: /opt/caldera/venv/bin/activate
+
+    - name: Install Caldera requirements
+      pip:
+        requirements: /opt/caldera/requirements.txt
+        virtualenv: /opt/caldera/venv
+
+    - name: Create systemd service file for Caldera
+      copy:
+        dest: /etc/systemd/system/caldera.service
+        content: |
+          [Unit]
+          Description=MITRE Caldera
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=ubuntu
+          WorkingDirectory=/opt/caldera
+          ExecStart=/opt/caldera/venv/bin/python server.py
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+      notify:
+        - Reload systemd
+        - Enable and start Caldera service
+
+  handlers:
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Caldera service
+      systemd:
+        name: caldera
+        enabled: yes
+        state: started
