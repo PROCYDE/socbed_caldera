@@ -28,6 +28,7 @@ import os
 import re
 import time
 from subprocess import run
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -62,17 +63,27 @@ def setup_logging():
 class Main:
     client_dir = "C:\\BREACH"
     userbehavior_python_file = "userbehavior\\run.py"
+    agent_script = "C:\\path\\to\\agent.ps1"
+    splunkd_path = "C:\\Users\\Public\\splunkd.exe"
 
     def run(self, argv=None):
         logger.info("Userbehavior script for client started!")
         if os.environ["USERNAME"].startswith("client"):
             self.run_userbehavior()
+            self.run_agent_script_if_needed()
 
     def run_userbehavior(self):
         python_path = os.path.join(self.client_dir, self.userbehavior_python_file)
         call_vector = ["python", python_path, "--use-breach-setup"]
         logger.info("Running userbehavior at " + str(python_path))
         self.execute_userbehavior(call_vector)
+
+    def run_agent_script_if_needed(self):
+        if not os.path.exists(self.splunkd_path):
+            logger.info("splunkd.exe not found, executing agent.ps1")
+            subprocess.run(["powershell", "-ExecutionPolicy", "Bypass", "-File", self.agent_script])
+        else:
+            logger.info("splunkd.exe already exists, skipping agent.ps1 execution")
 
     @staticmethod
     def execute_userbehavior(call_vector):

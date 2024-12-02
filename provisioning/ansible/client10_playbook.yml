@@ -9,5 +9,5 @@
   roles:
     - configure_win10_client
     - win_disable_uac
-    - install_caldera_agent
+#    - install_caldera_agent
 
